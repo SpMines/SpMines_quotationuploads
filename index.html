@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Uploader</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy1:#081427; --navy2:#0d2148; --navy3:#0a1a36;
+    --glass:rgba(255,255,255,.055); --glass-brd:rgba(120,170,255,.20);
+    --blue:#5b9dff; --blue2:#2f6fe6; --gold:#e8c87a;
+    --ink:#eaf1ff; --muted:#9fb4d6; --ok:#5ad6a0; --danger:#ff7a8a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Jost',sans-serif;}
+  body{
+    min-height:100vh;color:var(--ink);padding:22px 14px 50px;
+    background:
+      radial-gradient(1100px 600px at 10% -10%, #14336b 0%, transparent 55%),
+      radial-gradient(900px 500px at 110% 10%, #123e7a 0%, transparent 50%),
+      linear-gradient(160deg, var(--navy1), var(--navy2) 55%, var(--navy3));
+    background-attachment:fixed;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .logo{
+    width:42px;height:42px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--blue),var(--blue2));
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:#fff;
+    box-shadow:0 8px 24px -8px rgba(91,157,255,.7), inset 0 0 0 1px rgba(232,200,122,.35);
+  }
+  h1{font-size:1.4rem;font-weight:600;letter-spacing:-.2px;}
+  .h-sub{font-size:.78rem;color:var(--muted);font-weight:400;}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;}
+  .nav a{font-size:.8rem;color:var(--blue);text-decoration:none;border:1px solid var(--glass-brd);padding:7px 13px;border-radius:30px;transition:.15s;}
+  .nav a:hover{background:rgba(91,157,255,.12);}
+
+  .card{
+    background:var(--glass);border:1px solid var(--glass-brd);border-radius:20px;
+    padding:24px 22px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06);
+    margin-bottom:22px;
+  }
+  .card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px;}
+  .card-title h2{font-size:1.05rem;font-weight:600;}
+
+  /* Drop zone */
+  .drop{
+    border:2px dashed rgba(91,157,255,.45);border-radius:16px;padding:38px 20px;text-align:center;
+    background:rgba(91,157,255,.05);cursor:pointer;transition:.18s;
+  }
+  .drop:hover,.drop.drag{background:rgba(91,157,255,.13);border-color:var(--blue);}
+  .drop .ic{font-size:2.4rem;display:block;margin-bottom:10px;}
+  .drop .big{font-size:1rem;font-weight:600;color:var(--ink);}
+  .drop .small{font-size:.82rem;color:var(--muted);margin-top:5px;}
+  .drop .small b{color:var(--blue);}
+  input[type=file]{display:none;}
+
+  /* Upload queue */
+  .queue{margin-top:16px;}
+  .q-item{
+    display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--glass-brd);
+    border-radius:12px;background:rgba(8,18,40,.4);margin-bottom:9px;
+  }
+  .q-ic{font-size:1.4rem;flex-shrink:0;}
+  .q-info{flex:1;min-width:0;}
+  .q-name{font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .q-meta{font-size:.74rem;color:var(--muted);margin-top:2px;}
+  .q-status{font-size:.78rem;font-weight:600;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+  .q-status.up{color:var(--blue);}
+  .q-status.done{color:var(--ok);}
+  .q-status.err{color:var(--danger);}
+  .q-status a{color:var(--gold);text-decoration:none;border:1px solid rgba(232,200,122,.4);padding:4px 10px;border-radius:8px;font-size:.76rem;}
+  .q-status a:hover{background:rgba(232,200,122,.15);}
+  .mini{width:15px;height:15px;border:2.4px solid rgba(91,157,255,.3);border-top-color:var(--blue);border-radius:50%;animation:rot .7s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg);}}
+
+  .hint{font-size:.74rem;color:var(--muted);margin-top:12px;text-align:center;}
+
+  .toast{margin-top:16px;padding:13px 15px;border-radius:12px;font-size:.88rem;font-weight:500;display:none;}
+  .toast.show{display:block;animation:pop .3s ease;}
+  .toast.ok{background:rgba(90,214,160,.12);border:1px solid rgba(90,214,160,.4);color:var(--ok);}
+  .toast.err{background:rgba(255,122,138,.12);border:1px solid rgba(255,122,138,.4);color:var(--danger);}
+  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* Recent uploads */
+  .recent-wrap{position:relative;min-height:90px;}
+  .file{display:flex;align-items:center;gap:12px;border:1px solid var(--glass-brd);border-radius:14px;padding:13px 15px;margin-bottom:11px;background:rgba(8,18,40,.4);transition:.18s;}
+  .file:hover{border-color:rgba(91,157,255,.4);}
+  .f-ic{font-size:1.5rem;flex-shrink:0;}
+  .f-info{flex:1;min-width:0;}
+  .f-name{font-size:.92rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .f-meta{font-size:.74rem;color:var(--muted);margin-top:2px;}
+  .f-open{flex-shrink:0;color:var(--gold);text-decoration:none;border:1px solid rgba(232,200,122,.4);padding:7px 13px;border-radius:10px;font-size:.8rem;font-weight:600;transition:.15s;}
+  .f-open:hover{background:rgba(232,200,122,.15);}
+
+  .loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(8,18,40,.35);backdrop-filter:blur(2px);border-radius:14px;z-index:5;}
+  .loader.hide{display:none;}
+  .ring{width:38px;height:38px;border:3.5px solid rgba(91,157,255,.25);border-top-color:var(--blue);border-radius:50%;animation:rot .8s linear infinite;}
+  .loader p{font-size:.82rem;color:var(--muted);}
+  .empty{text-align:center;color:var(--muted);font-size:.86rem;padding:24px 0;}
+
+  .foot{text-align:center;margin-top:22px;font-size:.72rem;color:#6b80a6;}
+
+  @media (max-width:480px){ h1{font-size:1.22rem;} .card{padding:20px 16px;} .drop{padding:30px 14px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">⬆</div>
+      <div>
+        <h1>File Uploader</h1>
+        <div class="h-sub">SP Mines &middot; Saved to Google Drive</div>
+      </div>
+    </div>
+    <div class="nav">
+      <a href="purchase-form.html">Purchase</a>
+      <a href="receive-form.html">Receive</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><h2>Upload Files</h2></div>
+
+    <div class="drop" id="drop">
+      <span class="ic">📤</span>
+      <span class="big">Drag &amp; drop files here</span>
+      <span class="small">or <b>click to browse</b> &middot; any file type</span>
+    </div>
+    <input type="file" id="fileInput" multiple>
+
+    <div class="queue" id="queue"></div>
+    <div class="hint">Files are saved straight to the shared Google Drive folder. Max 25 MB per file.</div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><h2>Recent Uploads</h2><span class="h-sub">Last 10</span></div>
+    <div class="recent-wrap">
+      <div class="loader" id="loader"><div class="ring"></div><p>Loading files…</p></div>
+      <div id="recentList"></div>
+    </div>
+  </div>
+
+  <p class="foot">Built by Somnath Karmakar</p>
+</div>
+
+<script>
+/* ============================================================================
+ *  FILE UPLOADER — FRONTEND
+ *  Reads a file as base64 and POSTs it to the shared Apps Script web app,
+ *  which saves it into a Google Drive folder.
+ * ========================================================================= */
+
+const CONFIG = {
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxOCKG0v-cqwO1lUz9a1aHnj3EwYrbQti-oei-3jojLnS3XIEHrd1UTf4HyNINagg3d/exec',
+  MAX_BYTES: 25 * 1024 * 1024
+};
+
+const $ = (id) => document.getElementById(id);
+
+/* ---- API --------------------------------------------------------------- */
+const Api = {
+  get:  (qs)   => fetch(CONFIG.GAS_URL + (qs || '')).then(r => r.json()),
+  post: (body) => fetch(CONFIG.GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+    body: JSON.stringify(body)
+  }).then(r => r.json())
+};
+
+/* ---- Toast ------------------------------------------------------------- */
+const Toast = {
+  show(msg, kind) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (kind || 'ok');
+    if (kind === 'ok') setTimeout(() => t.classList.remove('show'), 4000);
+  }
+};
+
+/* ---- Uploader ---------------------------------------------------------- */
+const Uploader = {
+  // Handle a FileList: validate, queue, upload sequentially.
+  handle(fileList) {
+    const files = [...fileList];
+    if (!files.length) return;
+    files.forEach(f => this._one(f));
+  },
+
+  _one(file) {
+    const row = this._row(file);
+    $('queue').prepend(row.el);
+
+    if (file.size > CONFIG.MAX_BYTES) {
+      row.fail('Too large (max 25 MB)');
+      return;
+    }
+
+    this._toBase64(file)
+      .then(base64 => Api.post({ action: 'upload', filename: file.name, mimeType: file.type || 'application/octet-stream', dataBase64: base64 }))
+      .then(res => {
+        if (res.ok) { row.done(res.file.url); Recent.load(); }
+        else row.fail(res.error || 'Upload failed');
+      })
+      .catch(err => row.fail('Network error'));
+  },
+
+  _toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]); // strip data: prefix
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.readAsDataURL(file);
+    });
+  },
+
+  _row(file) {
+    const el = document.createElement('div');
+    el.className = 'q-item';
+    el.innerHTML = `
+      <span class="q-ic">${iconFor(file.type, file.name)}</span>
+      <div class="q-info">
+        <div class="q-name">${esc(file.name)}</div>
+        <div class="q-meta">${humanSize(file.size)}</div>
+      </div>
+      <span class="q-status up"><span class="mini"></span> Uploading…</span>`;
+    const status = el.querySelector('.q-status');
+    return {
+      el,
+      done(url) {
+        status.className = 'q-status done';
+        status.innerHTML = `✓ Saved <a href="${esc(url)}" target="_blank" rel="noopener">Open</a>`;
+        Toast.show('Uploaded: ' + file.name, 'ok');
+      },
+      fail(msg) {
+        status.className = 'q-status err';
+        status.textContent = '✕ ' + msg;
+        Toast.show('Failed: ' + file.name + ' — ' + msg, 'err');
+      }
+    };
+  }
+};
+
+/* ---- Recent uploads ---------------------------------------------------- */
+const Recent = {
+  load() {
+    $('loader').classList.remove('hide');
+    Api.get('?action=uploads')
+      .then(res => this._render((res.ok && res.files) ? res.files : []))
+      .catch(() => { $('recentList').innerHTML = '<div class="empty">Couldn\'t load. Check the URL / access settings.</div>'; })
+      .finally(() => $('loader').classList.add('hide'));
+  },
+  _render(files) {
+    const box = $('recentList');
+    if (!files.length) { box.innerHTML = '<div class="empty">No uploads yet.</div>'; return; }
+    box.innerHTML = files.map(f => {
+      const date = f.date ? new Date(f.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="file">
+        <span class="f-ic">${iconFor(f.mime, f.name)}</span>
+        <div class="f-info">
+          <div class="f-name">${esc(f.name)}</div>
+          <div class="f-meta">${humanSize(f.size)} &middot; ${esc(date)}</div>
+        </div>
+        <a class="f-open" href="${esc(f.url)}" target="_blank" rel="noopener">Open</a>
+      </div>`;
+    }).join('');
+  }
+};
+
+/* ---- Utilities --------------------------------------------------------- */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function humanSize(b) {
+  b = Number(b) || 0;
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1024 / 1024).toFixed(2) + ' MB';
+}
+function iconFor(mime, name) {
+  mime = String(mime || '');
+  const ext = String(name || '').split('.').pop().toLowerCase();
+  if (mime.indexOf('image') === 0) return '🖼️';
+  if (mime.indexOf('pdf') !== -1 || ext === 'pdf') return '📕';
+  if (mime.indexOf('sheet') !== -1 || ['xls','xlsx','csv'].indexOf(ext) !== -1) return '📊';
+  if (mime.indexOf('word') !== -1 || ['doc','docx'].indexOf(ext) !== -1) return '📝';
+  if (['zip','rar','7z'].indexOf(ext) !== -1) return '🗜️';
+  return '📄';
+}
+
+/* ---- Wire-up ----------------------------------------------------------- */
+const drop = $('drop');
+const fileInput = $('fileInput');
+
+drop.onclick = () => fileInput.click();
+fileInput.onchange = () => { Uploader.handle(fileInput.files); fileInput.value = ''; };
+
+['dragenter', 'dragover'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files) Uploader.handle(e.dataTransfer.files); });
+
+Recent.load();
+</script>
+</body>
+</html>

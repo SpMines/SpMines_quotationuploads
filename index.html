@@ -141,7 +141,7 @@
   </div>
 
   <div class="card">
-    <div class="card-title"><h2>Recent Uploads</h2><span class="h-sub">Last 10</span></div>
+    <div class="card-title"><h2>All Uploads</h2><span class="h-sub" id="upCount">Loading…</span></div>
     <div class="recent-wrap">
       <div class="loader" id="loader"><div class="ring"></div><p>Loading files…</p></div>
       <div id="recentList"></div>
@@ -159,7 +159,7 @@
  * ========================================================================= */
 
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxZdBeycXCCzAsf1CjKX8kKEbK_F_qed7GbYLuoOB0zjp_b-smS-QOVAZOAFUgOcHWO/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwxFmDu4LCZeM8sBwOLRkHmnDjIherK9iO8TnPWTefQW64-kptGvzlXZMKqyhVXVv_K/exec',
   MAX_BYTES: 25 * 1024 * 1024
 };
 
@@ -259,6 +259,7 @@ const Recent = {
   },
   _render(files) {
     const box = $('recentList');
+    $('upCount').textContent = files.length ? (files.length + ' file' + (files.length > 1 ? 's' : '')) : '0 files';
     if (!files.length) { box.innerHTML = '<div class="empty">No uploads yet.</div>'; return; }
     box.innerHTML = files.map(f => {
       const date = f.date ? new Date(f.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
